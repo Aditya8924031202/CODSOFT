@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""
+Tic-Tac-Toe (Human vs Unbeatable AI)
+------------------------------------
+- You are 'X'. The computer is 'O'.
+- Type a number 1..9 to place your mark:
+
+   1 | 2 | 3
+  ---+---+---
+   4 | 5 | 6
+  ---+---+---
+   7 | 8 | 9
+
+The AI uses Minimax with alpha–beta pruning (fast + unbeatable).
+"""
+
+from typing import List, Optional, Tuple
+
+HUMAN = 'X'
+AI = 'O'
+EMPTY = ' '
+
+def print_board(b: List[str]) -> None:
+    """Print the board in a friendly 3x3 layout."""
+    cells = [c if c != EMPTY else str(i+1) for i, c in enumerate(b)]
+    rows = [cells[0:3], cells[3:6], cells[6:9]]
+    print()
+    for r in range(3):
+        print(f" {rows[r][0]} | {rows[r][1]} | {rows[r][2]} ")
+        if r < 2:
+            print("---+---+---")
+    print()
+
+def winner(b: List[str]) -> Optional[str]:
+    """Return 'X' or 'O' if there is a winner, 'D' if draw, or None if game continues."""
+    lines = [
+        (0, 1, 2), (3, 4, 5), (6, 7, 8),  # rows
+        (0, 3, 6), (1, 4, 7), (2, 5, 8),  # columns
+        (0, 4, 8), (2, 4, 6)              # diagonals
+    ]
+    for a, c, d in lines:
+        if b[a] != EMPTY and b[a] == b[c] == b[d]:
+            return b[a]
+    if EMPTY not in b:
+        return 'D'  # draw
+    return None
+
+def minimax(b: List[str], is_max: bool, alpha: int, beta: int) -> Tuple[int, Optional[int]]:
+    """
+    Minimax with alpha-beta pruning.
+    Returns (score, move_index).
+    Score from AI perspective:
+      +1 = AI win, -1 = AI loss, 0 = draw.
+    """
+    win = winner(b)
+    if win is not None:
+        if win == AI:
+            return 1, None
+        if win == HUMAN:
+            return -1, None
+        return 0, None  # draw
+
+    best_move = None
+    if is_max:
+        best_score = -10
+        for i in range(9):
+            if b[i] == EMPTY:
+                b[i] = AI
+                score, _ = minimax(b, False, alpha, beta)
+                b[i] = EMPTY
+                if score > best_score:
+                    best_score, best_move = score, i
+                alpha = max(alpha, best_score)
+                if beta <= alpha:
+                    break  # prune
+        return best_score, best_move
+    else:
+        best_score = 10
+        for i in range(9):
+            if b[i] == EMPTY:
+                b[i] = HUMAN
+                score, _ = minimax(b, True, alpha, beta)
+                b[i] = EMPTY
+                if score < best_score:
+                    best_score, best_move = score, i
+                beta = min(beta, best_score)
+                if beta <= alpha:
+                    break  # prune
+        return best_score, best_move
+
+def ai_best_move(b: List[str]) -> int:
+    """Pick the best move for the AI (index 0..8)."""
+    _, move = minimax(b, True, -10**9, 10**9)
+    return move if move is not None else b.index(EMPTY)
+
+def ask_human_move(b: List[str]) -> int:
+    """Ask the human for a legal move and return it as a 0-based index."""
+    while True:
+        raw = input("Your move (1-9): ").strip()
+        if raw not in list("123456789"):
+            print("Please type a number from 1 to 9.")
+            continue
+        idx = int(raw) - 1
+        if b[idx] != EMPTY:
+            print("That spot is taken. Try another.")
+            continue
+        return idx
+
+def play() -> None:
+    print(__doc__)
+    board = [EMPTY] * 9
+    print_board(board)
+
+    # Human (X) always starts.
+    turn = HUMAN
+
+    while True:
+        if turn == HUMAN:
+            move = ask_human_move(board)
+            board[move] = HUMAN
+        else:
+            print("Computer is thinking...")
+            move = ai_best_move(board)
+            board[move] = AI
+
+        print_board(board)
+        w = winner(board)
+        if w is not None:
+            if w == 'D':
+                print("It's a draw! Good game.")
+            elif w == HUMAN:
+                print("You win! 🎉  (That was impressive.)")
+            else:
+                print("Computer wins! 🤖  (Unbeatable, remember?)")
+            break
+
+        turn = AI if turn == HUMAN else HUMAN
+
+if __name__ == "__main__":
+    play()
